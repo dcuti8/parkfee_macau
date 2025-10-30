@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>澳门泊车费用计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36D399',
+                        neutral: '#64748B',
+                        light: '#F1F5F9',
+                        dark: '#1E293B'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-shadow {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-dark">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- 页面标题 -->
+        <header class="text-center mb-8">
+            <h1 class="text-[clamp(1.8rem,5vw,2.5rem)] font-bold mb-2 flex items-center justify-center">
+                <i class="fa fa-car text-primary mr-3"></i>泊车费用计算器
+            </h1>
+            <p class="text-neutral">澳门地区停车费用计算 (MOP$)</p>
+        </header>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 计算器主体 -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl p-6 card-shadow mb-6">
+                    <!-- 费率说明 -->
+                    <div class="bg-light rounded-lg p-4 mb-6">
+                        <h2 class="font-semibold text-lg mb-3">费率说明</h2>
+                        <ul class="space-y-2 text-neutral">
+                            <li class="flex items-center">
+                                <i class="fa fa-sun-o text-yellow-500 mr-2"></i>
+                                <span><strong>日间</strong> (08:00 - 20:00前): MOP$2/小时</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fa fa-moon-o text-blue-700 mr-2"></i>
+                                <span><strong>夜间</strong> (20:00 - 次日08:00前): MOP$1/小时</span>
+                            </li>
+                            <li class="flex items-center mt-3 text-red-500">
+                                <i class="fa fa-info-circle mr-2"></i>
+                                <span><strong>计费规则：不足1小时按1小时计算</strong></span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- 时间输入表单 -->
+                    <form id="parkingForm" class="space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <!-- 开始时间 -->
+                            <div class="space-y-2">
+                                <label for="startTime" class="block font-medium">
+                                    <i class="fa fa-clock-o text-primary mr-1"></i>开始停车时间
+                                </label>
+                                <input 
+                                    type="datetime-local" 
+                                    id="startTime" 
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all-300"
+                                >
+                            </div>
+                            
+                            <!-- 结束时间 -->
+                            <div class="space-y-2">
+                                <label for="endTime" class="block font-medium">
+                                    <i class="fa fa-sign-out text-primary mr-1"></i>结束停车时间
+                                </label>
+                                <input 
+                                    type="datetime-local" 
+                                    id="endTime" 
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all-300"
+                                >
+                            </div>
+                        </div>
+                        
+                        <!-- 操作按钮 -->
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button 
+                                type="submit" 
+                                class="bg-primary hover:bg-primary/90 text-white font-medium px-6 py-3 rounded-lg transition-all-300 flex items-center justify-center flex-1"
+                            >
+                                <i class="fa fa-calculator mr-2"></i>计算停车费用
+                            </button>
+                            <button 
+                                type="button" 
+                                id="clearBtn"
+                                class="bg-gray-200 hover:bg-gray-300 text-neutral font-medium px-6 py-3 rounded-lg transition-all-300 flex items-center justify-center"
+                            >
+                                <i class="fa fa-eraser mr-2"></i>清空
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 结果展示区域 -->
+                <div id="resultArea" class="hidden bg-white rounded-xl p-6 card-shadow">
+                    <h2 class="font-semibold text-xl mb-4 flex items-center">
+                        <i class="fa fa-calculator text-secondary mr-2"></i>计算结果
+                    </h2>
+                    
+                    <!-- 总费用 -->
+                    <div class="bg-light rounded-lg p-4 mb-6 text-center">
+                        <p class="text-neutral mb-1">总停车费用</p>
+                        <p id="totalCost" class="text-3xl font-bold text-primary">MOP$0.00</p>
+                    </div>
+                    
+                    <!-- 计算明细 -->
+                    <div>
+                        <h3 class="font-medium text-lg mb-3">计算明细</h3>
+                        <div id="calculationDetails" class="space-y-3 text-neutral text-sm md:text-base max-h-60 overflow-y-auto pr-2">
+                            <!-- 计算过程会在这里动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 历史记录 -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl p-6 card-shadow h-full">
+                    <h2 class="font-semibold text-xl mb-4 flex items-center justify-between">
+                        <span><i class="fa fa-history text-primary mr-2"></i>历史记录</span>
+                        <button id="clearHistory" class="text-sm text-neutral hover:text-red-500 transition-all-300">
+                            <i class="fa fa-trash-o mr-1"></i>清空
+                        </button>
+                    </h2>
+                    
+                    <div id="historyContainer" class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                        <div class="text-neutral text-center py-8" id="emptyHistory">
+                            <i class="fa fa-folder-open-o text-4xl mb-2 opacity-30"></i>
+                            <p>暂无计算记录</p>
+                        </div>
+                        <!-- 历史记录会在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', () => {
+            // 设置默认时间（开始时间为当前时间，结束时间为30分钟后）
+            const now = new Date();
+            const thirtyMinutesLater = new Date(now.getTime() + 30 * 60 * 1000);
+            
+            // 格式化时间为datetime-local所需格式（YYYY-MM-DDThh:mm）
+            const formatDate = (date) => {
+                return date.toISOString().slice(0, 16);
+            };
+            
+            document.getElementById('startTime').value = formatDate(now);
+            document.getElementById('endTime').value = formatDate(thirtyMinutesLater);
+            
+            // 加载历史记录
+            loadHistory();
+            
+            // 绑定事件
+            document.getElementById('parkingForm').addEventListener('submit', handleCalculate);
+            document.getElementById('clearBtn').addEventListener('click', clearForm);
+            document.getElementById('clearHistory').addEventListener('click', clearAllHistory);
+        });
+        
+        /**
+         * 处理计算提交
+         */
+        function handleCalculate(e) {
+            e.preventDefault();
+            
+            // 获取输入的时间
+            const startTime = new Date(document.getElementById('startTime').value);
+            const endTime = new Date(document.getElementById('endTime').value);
+            
+            // 验证时间有效性
+            if (endTime <= startTime) {
+                alert('结束时间必须晚于开始时间');
+                return;
+            }
+            
+            // 计算停车费用
+            const result = calculateParkingFee(startTime, endTime);
+            
+            // 显示结果
+            displayResult(result, startTime, endTime);
+            
+            // 保存记录到localStorage
+            saveToHistory(result, startTime, endTime);
+        }
+        
+        /**
+         * 计算停车费用（不足1小时按1小时计算）
+         * @param {Date} startTime - 开始时间
+         * @param {Date} endTime - 结束时间
+         * @returns {Object} 包含总费用和计算明细的对象
+         */
+        function calculateParkingFee(startTime, endTime) {
+            const details = [];
+            let totalCost = 0;
+            let currentTime = new Date(startTime);
+            
+            // 定义费率
+            const DAY_RATE = 2;    // 日间费率：MOP$2/小时
+            const NIGHT_RATE = 1;  // 夜间费率：MOP$1/小时
+            
+            // 循环计算每一小时的费用
+            while (currentTime < endTime) {
+                // 确定当前时段（日间/夜间）
+                const hour = currentTime.getHours();
+                const isDayTime = hour >= 8 && hour < 20; // 08:00 - 20:00前为日间
+                const rate = isDayTime ? DAY_RATE : NIGHT_RATE;
+                const period = isDayTime ? '日间' : '夜间';
+                
+                // 计算当前时段的结束时间
+                const nextHour = new Date(currentTime);
+                nextHour.setHours(currentTime.getHours() + 1);
+                const periodEnd = nextHour < endTime ? nextHour : endTime;
+                
+                // 计算当前时段的实际时长（小时）
+                const durationMs = periodEnd - currentTime;
+                const actualDurationHours = durationMs / (1000 * 60 * 60);
+                
+                // 不足1小时按1小时计算
+                const billedHours = Math.ceil(actualDurationHours);
+                
+                // 计算当前时段的费用
+                const periodCost = billedHours * rate;
+                totalCost += periodCost;
+                
+                // 记录明细
+                details.push({
+                    start: new Date(currentTime),
+                    end: periodEnd,
+                    actualDuration: actualDurationHours,
+                    billedHours: billedHours,
+                    rate: rate,
+                    period: period,
+                    cost: periodCost
+                });
+                
+                // 移动到下一时段
+                currentTime = nextHour;
+            }
+            
+            return {
+                totalCost: totalCost, // 由于使用ceil，结果已是整数
+                details: details
+            };
+        }
+        
+        /**
+         * 显示计算结果
+         */
+        function displayResult(result, startTime, endTime) {
+            // 显示结果区域
+            const resultArea = document.getElementById('resultArea');
+            resultArea.classList.remove('hidden');
+            
+            // 显示总费用
+            document.getElementById('totalCost').textContent = `MOP$${result.totalCost.toFixed(2)}`;
+            
+            // 显示计算明细
+            const detailsContainer = document.getElementById('calculationDetails');
+            detailsContainer.innerHTML = '';
+            
+            // 计算总实际时长和总计费时长
+            const totalActualHours = result.details.reduce((sum, item) => sum + item.actualDuration, 0);
+            const totalBilledHours = result.details.reduce((sum, item) => sum + item.billedHours, 0);
+            
+            // 添加总停车时间
+            const totalHoursEl = document.createElement('div');
+            totalHoursEl.className = 'text-dark font-medium';
+            totalHoursEl.innerHTML = `
+                总停车时间: ${totalActualHours.toFixed(2)} 小时 (实际) 
+                <span class="text-red-500">→ ${totalBilledHours} 小时 (计费)</span>
+            `;
+            detailsContainer.appendChild(totalHoursEl);
+            
+            // 添加分隔线
+            const divider = document.createElement('div');
+            divider.className = 'border-t border-gray-200 my-2';
+            detailsContainer.appendChild(divider);
+            
+            // 添加各时段明细
+            result.details.forEach((item, index) => {
+                const detailEl = document.createElement('div');
+                detailEl.className = 'p-2 bg-light/50 rounded-lg';
+                
+                const formatTime = (date) => {
+                    return date.toLocaleString('zh-CN', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                };
+                
+                // 显示实际时长和计费时长（突出显示不足1小时的情况）
+                let durationText = `${item.actualDuration.toFixed(2)} 小时 (实际)`;
+                if (item.billedHours > item.actualDuration) {
+                    durationText += `<span class="text-red-500"> → 按 ${item.billedHours} 小时计费</span>`;
+                }
+                
+                detailEl.innerHTML = `
+                    <div class="flex justify-between text-sm">
+                        <span>${formatTime(item.start)} - ${formatTime(item.end)}</span>
+                        <span class="font-medium">${item.period}</span>
+                    </div>
+                    <div class="mt-1 text-sm">${durationText}</div>
+                    <div class="flex justify-end mt-1">
+                        <span>费用: MOP$${item.cost.toFixed(2)} (${item.rate}元/小时)</span>
+                    </div>
+                `;
+                
+                detailsContainer.appendChild(detailEl);
+            });
+        }
+        
+        /**
+         * 保存记录到localStorage
+         */
+        function saveToHistory(result, startTime, endTime) {
+            // 获取现有记录
+            let history = JSON.parse(localStorage.getItem('parkingHistory') || '[]');
+            
+            // 创建新记录
+            const newRecord = {
+                id: Date.now(), // 使用时间戳作为唯一ID
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+                totalCost: result.totalCost,
+                createdAt: new Date().toISOString()
+            };
+            
+            // 添加新记录到开头
+            history.unshift(newRecord);
+            
+            // 限制记录数量（最多20条）
+            if (history.length > 20) {
+                history = history.slice(0, 20);
+            }
+            
+            // 保存到localStorage
+            localStorage.setItem('parkingHistory', JSON.stringify(history));
+            
+            // 更新历史记录显示
+            loadHistory();
+        }
+        
+        /**
+         * 加载历史记录
+         */
+        function loadHistory() {
+            const historyContainer = document.getElementById('historyContainer');
+            const emptyHistory = document.getElementById('emptyHistory');
+            
+            // 获取记录
+            const history = JSON.parse(localStorage.getItem('parkingHistory') || '[]');
+            
+            // 清空容器（保留空状态提示）
+            Array.from(historyContainer.children).forEach(child => {
+                if (child.id !== 'emptyHistory') {
+                    child.remove();
+                }
+            });
+            
+            // 显示空状态或记录
+            if (history.length === 0) {
+                emptyHistory.classList.remove('hidden');
+                return;
+            }
+            
+            // 隐藏空状态提示
+            emptyHistory.classList.add('hidden');
+            
+            // 添加记录到容器
+            history.forEach(record => {
+                const start = new Date(record.startTime);
+                const end = new Date(record.endTime);
+                const created = new Date(record.createdAt);
+                
+                const formatDateTime = (date) => {
+                    return date.toLocaleString('zh-CN');
+                };
+                
+                const recordEl = document.createElement('div');
+                recordEl.className = 'p-3 border border-gray-100 rounded-lg hover:bg-light/50 transition-all-300';
+                recordEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-medium">MOP$${record.totalCost.toFixed(2)}</span>
+                        <span class="text-xs text-neutral">${formatDateTime(created)}</span>
+                    </div>
+                    <div class="text-sm text-neutral space-y-1">
+                        <div>开始: ${formatDateTime(start)}</div>
+                        <div>结束: ${formatDateTime(end)}</div>
+                    </div>
+                    <button class="mt-2 text-xs text-primary hover:text-primary/80" 
+                            onclick="loadRecord(${record.id})">
+                        <i class="fa fa-refresh mr-1"></i>加载此记录
+                    </button>
+                `;
+                
+                historyContainer.insertBefore(recordEl, emptyHistory);
+            });
+        }
+        
+        /**
+         * 加载历史记录到表单
+         */
+        function loadRecord(id) {
+            const history = JSON.parse(localStorage.getItem('parkingHistory') || '[]');
+            const record = history.find(item => item.id === id);
+            
+            if (record) {
+                const formatDate = (dateStr) => {
+                    return new Date(dateStr).toISOString().slice(0, 16);
+                };
+                
+                document.getElementById('startTime').value = formatDate(record.startTime);
+                document.getElementById('endTime').value = formatDate(record.endTime);
+            }
+        }
+        
+        /**
+         * 清空表单
+         */
+        function clearForm() {
+            const now = new Date();
+            const thirtyMinutesLater = new Date(now.getTime() + 30 * 60 * 1000);
+            
+            const formatDate = (date) => {
+                return date.toISOString().slice(0, 16);
+            };
+            
+            document.getElementById('startTime').value = formatDate(now);
+            document.getElementById('endTime').value = formatDate(thirtyMinutesLater);
+            document.getElementById('resultArea').classList.add('hidden');
+        }
+        
+        /**
+         * 清空所有历史记录
+         */
+        function clearAllHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                localStorage.removeItem('parkingHistory');
+                loadHistory();
+            }
+        }
+        
+        // 暴露函数到全局，供HTML调用
+        window.loadRecord = loadRecord;
+    </script>
+</body>
+</html>
